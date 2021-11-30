@@ -49,7 +49,7 @@ configs = [
         'nfaulty': 1,
         'limit_step_1' : 5,
         'limit_step_2' : 5,
-        'limit_step_3' : 2,
+        'limit_step_3' : 5,
         'partition_size' : 2,
         'nbr_of_rounds' : 10,
         'test_type' : 'RANDOM',

@@ -6,6 +6,7 @@ import random
 import json
 import math
 
+# Todo : Re generate the scenario in case liveness is not guaranteed 
 class TestGenerator():
 
 
@@ -84,6 +85,8 @@ class TestGenerator():
                 round_dict['Leader'] = leader
                 round_dict['Partition'] = partition
                 test_dict['round_partitions'][round] = round_dict
+            live = self.check_liveness(test_dict)
+            # print("Liveness - config_id : ", config_id, " Scenario id : ", scenario_nbr, " Live : ", live)
             self.generate_intra_partition_exclude_list()
             self.add_generic_details_to_scenario(test_dict)
             file_path = os.getcwd()
@@ -153,7 +156,24 @@ class TestGenerator():
         scenario_dict['twin_mapping'] = self.node_to_twin_dict
 
 
+    def check_liveness(self, scenario_dict):
+        idx = -10
+        partition = scenario_dict['round_partitions']
+        for round in sorted(partition):
+            found = False
+            for lst in partition[round]['Partition']:
+                if len(lst) >= (2 * self.nfaulty + 1):
+                    found = True
+            if found == False:
+                idx = -10
+            else:
+                if idx == -10:
+                    idx = int(round)
+                else:
+                    if int(round) - idx + 1 == 3: #  2*f+1 partition size can be reached in 3 consecutive rounds
+                        return True
 
+        return False
 
 if __name__ == '__main__':
     
