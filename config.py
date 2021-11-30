@@ -18,23 +18,27 @@ configs = [
         'exclude_size': 1,
         'exclusion_list': {
             "1": {
-                "C" : {
-                    "destination" : ["D"],
-                    "messageType" : ""
+                "A" : {
+                    "B" : {
+                        "messageType" : "proposal_message"
+                    }
                 },
-                "D" : {
-                    "destination" : ["A"],
-                    "messageType": "proposal_message"
+                "B" : {
+                    "C" : {
+                        "messageType" : "*"
+                    }
                 }
             },
             "2": {
-                "A" : {
-                    "destination" : ["C"],
-                    "messageType" : ""
+                "C" : {
+                    "D" : {
+                        "messageType" : "proposal_message"
+                    }
                 },
                 "B" : {
-                    "destination" : ["D"],
-                    "messageType": "vote_message"
+                    "E" : {
+                        "messageType" : "*"
+                    }
                 }
             }
         } 
@@ -59,22 +63,26 @@ configs = [
         'exclusion_list': {
             "1": {
                 "A" : {
-                    "destination" : ["B", "C"],
-                    "messageType" : ""
+                    "B" : {
+                        "messageType" : "proposal_message"
+                    }
                 },
                 "B" : {
-                    "destination" : ["D"],
-                    "messageType": "vote_message"
+                    "C" : {
+                        "messageType" : "*"
+                    }
                 }
             },
             "2": {
                 "C" : {
-                    "destination" : ["A"],
-                    "messageType" : ""
+                    "D" : {
+                        "messageType" : "proposal_message"
+                    }
                 },
                 "B" : {
-                    "destination" : ["D"],
-                    "messageType": "proposal_message"
+                    "E" : {
+                        "messageType" : "*"
+                    }
                 }
             }
         }
