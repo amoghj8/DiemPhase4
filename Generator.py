@@ -12,7 +12,6 @@ class TestGenerator():
     # nodes : list of nodes excluding the twins
     # node_to_twin_dict : Mapping from node to twin ( if it exists )
     def get_leader( self, l, nodes, node_to_twin_dict, leader_limit):
-        print(leader_limit)
         list_of_leader = []
         if l == True:
             for node in nodes[0:self.nvalidators]:
@@ -23,7 +22,6 @@ class TestGenerator():
         else:
             for node in node_to_twin_dict:
                 list_of_leader.append([node, node_to_twin_dict[node]]) # Only nodes with twin will be made as leaders
-        print("list of leader", list_of_leader)
         return list_of_leader[0:leader_limit]
 
     
@@ -32,7 +30,6 @@ class TestGenerator():
     # nbr_of_rounds : Number of rounds for each test case
     # test_type : indicates deterministic or randon 
     def generate_test_cases(self, config_id, partition_list, leader_list, nbr_of_scenario, nbr_of_rounds, test_type):
-        print("No of scenarios", nbr_of_scenario)
         partition_index = 0
         leader_index = -1
         os.mkdir('scenario/'+ str(config_id) + '/')
@@ -48,15 +45,13 @@ class TestGenerator():
                 else :
                     leader_index = random.randint(0, len(leader_list)-1)
                     partition_index = random.randint(0, len(partition_list)-1)
-                print('Leader Index: ', leader_index, ' Partition Index : ', partition_index)
                 leader = leader_list[leader_index] 
                 partition = partition_list[partition_index]
                 round_dict['Leader'] = leader
                 round_dict['Partition'] = partition
                 test_dict['round_partitions'][round] = round_dict
-                print(round_dict)
             # test_dict['exclusion_list'] = 
-            json_object = json.dumps(test_dict)
+            self.add_generic_details_to_scenario(test_dict)
             file_path = os.getcwd()
             with open(file_path + '/scenario/'+ str(config_id) + '/'+ str(scenario_nbr) + '.json', 'a+') as scene_file:
                 json.dump(test_dict, scene_file)
@@ -64,7 +59,7 @@ class TestGenerator():
         
     
     # read the config and load all the values
-    def setup(self, config):
+    def setup(self, config, config_id):
         self.nvalidators = int(config['nvalidators'])
         self.nfaulty = int(config['nfaulty'])
         self.nodes = self.generate_nodes(self.nvalidators + self.nfaulty)
@@ -78,6 +73,7 @@ class TestGenerator():
         self.limit_step_2 = int(config['limit_step_2'])
         self.limit_step_3 = int(config['limit_step_3'])
         self.test_type = str(config['test_type'])
+        self.exclusion_dict = config['exclusion_list']
 
         print('List of Nodes : ', self.nodes)
         print('Node to Twin Mapping : ', self.node_to_twin_dict)
@@ -87,13 +83,14 @@ class TestGenerator():
         print('Limit for Step 1 : ', self.limit_step_1)
         print('Limit for step 2 : ', self.limit_step_2)
         print('Limit for step 3 : ', self.limit_step_3)
+        # print('Exclusion List', self.exclusion_dict)
 
         leader_limit = int(math.ceil(self.limit_step_2/self.limit_step_1))
         print("Leader limit = ", leader_limit)
 
         self.partition_list = self.partitionGenerator(self.nodes, self.partition_size, self.limit_step_1)
         self.leader_list = self.get_leader(self.all_leaders, self.nodes, self.node_to_twin_dict, leader_limit)
-        self.generate_test_cases(1, self.partition_list, self.leader_list, self.limit_step_3, self.nbr_of_rounds, self.test_type)
+        self.generate_test_cases(config_id, self.partition_list, self.leader_list, self.limit_step_3, self.nbr_of_rounds, self.test_type)
         
         
     def generate_nodes(self, n):
@@ -140,6 +137,22 @@ class TestGenerator():
                 
         return result[:limit_1]    
     
+
+    def generate_intra_partition_exclude_list():
+        exclusion_dict = {} # list of tuples for each round
+        for round, src, dest in fp:
+            exclusion_dict[round].append( ( src, dest ) )
+        return exclusion_dict
+
+    def add_generic_details_to_scenario(self, scenario_dict):
+        scenario_dict['nreplicas'] = self.nvalidators
+        scenario_dict['ntwins'] = self.nfaulty
+        scenario_dict['exclusion'] = self.exclusion_dict
+        scenario_dict['twin_mapping'] = self.node_to_twin_dict
+
+
+
+
 if __name__ == '__main__':
     
     path = os.getcwd()
@@ -171,8 +184,8 @@ if __name__ == '__main__':
     # print(TestGenerator.generate_nodes(5))
     tg = TestGenerator()
     
-    for config in configs:
-        tg.setup(config)
+    for i,config in enumerate(configs, start = 1):
+        tg.setup(config, i)
 
     # -----------------------------------------------------------------------------------------
     # Test PartitionGenerator
