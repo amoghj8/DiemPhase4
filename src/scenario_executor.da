@@ -9,6 +9,7 @@ sys.path.append('../scenario')
 
 from client import Client
 from config import configs
+from networkPlayground import NetworkPlayground
 from cryptography import Cryptography
 from validator import ValidatorFI
 from pathlib import Path
@@ -54,6 +55,7 @@ class RunDiemBFT(process):
             public_keys_validators[v] = public_key_list_validators[i]
             id_to_validator_map[id] = v
             validator_to_id_map[v] = id
+            output("Test :" + id)
             id = chr(ord(id) + 1)
 
         for i, t in enumerate(twins):
@@ -77,6 +79,10 @@ class RunDiemBFT(process):
         for i, c in enumerate(clients):
             setup({c}, (config, config_id, i, list(validators),
                         private_keys_clients[c], public_keys_validators))
+
+        play_ground = new(NetworkPlayground, num = 1)
+        setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
+        start(play_ground)
 
         start(validators)
         start(clients)
