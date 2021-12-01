@@ -43,9 +43,9 @@ class RunDiemBFT(process):
         play_ground = new(NetworkPlayground, num = 1)
         
 
-        validators = new(ValidatorTwin, num=nvalidators)
-        twins = new(ValidatorTwin, num=ntwins)
-        clients = new(Client, num=nclients)
+        validators = list(new(ValidatorTwin, num=nvalidators))
+        twins = list(new(ValidatorTwin, num=ntwins))
+        clients = list(new(Client, num=nclients))
 
         for _ in range(nvalidators):
             private_key, public_key = Cryptography.generate_key()
@@ -57,7 +57,6 @@ class RunDiemBFT(process):
             public_keys_validators[v] = public_key_list_validators[i]
             id_to_validator_map[id] = v
             validator_to_id_map[v] = id
-            output("Test :" + id)
             id = chr(ord(id) + 1)
 
         for i, v in enumerate(twins):
@@ -66,13 +65,15 @@ class RunDiemBFT(process):
             id_to_validator_map[id] = v
             validator_to_id_map[v] = id
             id = chr(ord(id) + 1)
+            validators.append(v)
 
         for c in clients:
             private_key, public_key = Cryptography.generate_key()
             private_keys_clients[c] = private_key
             public_keys_clients[c] = public_key
 
-        validators.update(twins)
+        setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
+        start(play_ground)
 
         for i, v in enumerate(validators):
             setup({v}, (config, config_id, i, list(validators), list(clients),
@@ -82,8 +83,6 @@ class RunDiemBFT(process):
             setup({c}, (config, config_id, i, list(validators),
                         private_keys_clients[c], public_keys_validators))
 
-        setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
-        start(play_ground)
         start(validators)
         # start(twins)
         start(clients)
