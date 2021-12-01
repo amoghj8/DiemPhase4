@@ -15,7 +15,7 @@ from safety import Safety
 
 class Validator (process):
 
-    def setup(config, config_id: int, validator_id: int, replicas: list, clients: list, private_key, public_keys_validators, public_keys_clients, play_ground):
+    def setup(config, config_id: int, validator_id: int, replicas: list, clients: list, private_key, public_keys_validators, public_keys_clients, play_ground, validator_to_id_map, id_to_validator_map):
 
         LOGGER.replicas = replicas
         LOGGER.process_id = "validator_" + str(validator_id)
@@ -46,10 +46,29 @@ class Validator (process):
         Cryptography.replicas = self.replicas
         Cryptography.public_keys_validators = self.public_keys_validators
 
+        '''
+        if config['failure_config'].seed is None:
+            config['failure_config'].seed = random.randint(10000, 100000)
+            LOGGER.log_action("Generated a seed for failure config",
+                              config['failure_config'].seed)
+
+        random.seed(config['failure_config'].seed)
+        '''
+    '''
+    # For fault injection
+    def setattr(attr, value):
+        if attr == 'current_round':
+            self.pacemaker.current_round = value
+        elif attr == 'highest_vote_round':
+            self.safety.set_highest_vote_round(value)
+        else:
+            output('error: Validator.setattr: unsupported attribute')
+    '''
+
     # Broadcast the timeout message
     def send_timeout_msg(timeout_msg):
         LOGGER.log('Validator: send_timeout_message', timeout_msg)
-        send(('Timeout', timeout_msg), to=self.play_ground)
+        send(('Timeout', timeout_msg), to=self.replicas)
         LOGGER.log_event('Sent', 'Timeout', timeout_msg, self.replicas)
 
     '''Procedure start event processing(M)'''
@@ -96,7 +115,7 @@ class Validator (process):
         LOGGER.log('Validator: process_new_round_event', last_tc)
 
         '''if u = LeaderElection.get leader(Pacemaker.current round) then'''
-        if self.replicas[validator_id] == self.leader_election.get_leader(self.pacemaker.current_round):
+        if self.replicas[validator_id] in self.get_leader(self.pacemaker.current_round):
 
             # Check if there are any transactions in the MemPool
             if self.mempool.peek_pool() == 0:
@@ -130,14 +149,14 @@ class Validator (process):
                 high_commit_qc=self.blocktree.high_commit_qc,
                 validator=validator_id
             )
-            send(('Proposal', proposal_msg), to=self.play_ground)
+            send(('Proposal', proposal_msg), to=self.replicas)
             LOGGER.log_event("Sent", "Proposal",
                              proposal_msg, self.replicas)
 
         LOGGER.log("Validator: process_new_round_event ends", None)
 
     '''Procedure process proposal msg(P)'''
-    def receive(msg=('Proposal', proposal_msg, p), from_=pl):
+    def receive(msg=('Proposal', proposal_msg, p), from_=plg):
         LOGGER.log_event("Received", "Proposal", proposal_msg, p)
 
         signature_verified = Cryptography.get_verified_message(
@@ -162,10 +181,10 @@ class Validator (process):
             '''round ← Pacemaker.current round'''
             round = self.pacemaker.current_round
             '''leader ← LeaderElection.get leader(current round)'''
-            leader = self.leader_election.get_leader(round)
+            leader = self.get_leader(round)
             '''if P.block.round 6= round ∨ P.sender 6= leader ∨ P.block.author 6= leader then
                     return'''
-            if proposal_msg.block.round != round or replicas[proposal_msg.sender] != leader or replicas[proposal_msg.block.author] != leader:
+            if proposal_msg.block.round != round or replicas[proposal_msg.sender] not in leader or replicas[proposal_msg.block.author] not in leader:
                 LOGGER.log("ROUND PROPOSAL EARLY EXIT", proposal_msg.block.round, round, replicas[proposal_msg.sender], leader)
                 return
 
@@ -189,16 +208,16 @@ class Validator (process):
             '''if vote msg != ⊥ then
                     send vote msg to LeaderElection.get leader(current round + 1)'''
             if vote_msg is not None:
-                next_leader = self.leader_election.get_leader(round + 1)
+                next_leader = self.get_leader(round + 1)
                 send(('Vote', vote_msg),
-                     to=self.play_ground)
+                     to=next_leader)
                 LOGGER.log_event("Sent", "Vote", vote_msg, next_leader)
 
         else:
             LOGGER.log_action("Verified ProposalMsg signature", False)
 
     '''Procedure process vote msg(M)'''
-    def receive(msg=('Vote', vote_msg), from_=p):
+    def receive(msg=('Vote', vote_msg, p), from_=plg):
         LOGGER.log_event("Received", "Vote", vote_msg, p)
 
         signature_verified = Cryptography.get_verified_message(
@@ -222,7 +241,7 @@ class Validator (process):
         LOGGER.log("Received VoteMsg ends g", None)
 
     '''Procedure process timeout msg(M)'''
-    def receive(msg=('Timeout', timeout_msg), from_=p):
+    def receive(msg=('Timeout', timeout_msg, p), from_=plg):
         LOGGER.log_event("Received", "Timeout", timeout_msg, p)
 
         signature_verified = Cryptography.get_verified_message(
@@ -273,13 +292,102 @@ class Validator (process):
         else:
             LOGGER.log_action("Verified Client Request signature", False)
 
+    
+    def get_leader(v_round):
+        return self.leader_election.get_leader(v_round)
 
+'''
 class ValidatorFI (process, Validator):
 
+    def get_failure_config(message, to):
+        for failure_config in self.config['failure_config'].failures:
+
+            # only allow SetAttr fail type to last nfaulty validators
+            if failure_config.fail_type == FailType.SetAttr and self.validator_id < len(self.replicas) - config['nfaulty']:
+                continue
+
+            if failure_config.round != self.pacemaker.current_round:
+                continue
+
+            if failure_config.src == "leader":
+                if self.leader_election.get_leader(self.pacemaker.current_round) != self.replicas[self.validator_id]:
+                    continue
+            elif failure_config.src != "_" and failure_config.src != self.validator_id:
+                continue
+
+            if failure_config.dest == "leader":
+                if failure_config.msg_type == MsgType.Vote and self.leader_election.get_leader(self.pacemaker.current_round + 1) != to:
+                    continue
+                if failure_config.msg_type != MsgType.Vote and self.leader_election.get_leader(self.pacemaker.current_round) != to:
+                    continue
+            elif failure_config.dest != "_" and self.replicas[failure_config.dest] != to:
+                continue
+
+            if failure_config.msg_type != MsgType.Wildcard and failure_config.msg_type.name != message[0]:
+                continue
+
+            if random.random() < 1 - failure_config.prob:
+                return None
+            else:
+                return failure_config
+        return None
+
+    def send_msg_delayed(message, to, val):
+        time.sleep(val)
+        super().send(message, to)
+
     def send(message, to):
+        # Get a matching failure configuration
         dests = [to]
         if type(to) == list:
             dests = to
 
         for dest in dests:
-            super().send(message, dest)
+            failure_config = get_failure_config(message, dest)
+
+            if failure_config is None:
+                super().send(message, dest)
+            else:
+                LOGGER.log_action('Injecting fault',
+                                  [failure_config.fail_type.name, message, dest])
+                if failure_config.fail_type == FailType.MsgLoss:
+                    LOGGER.log('ValidatorFI.send', 'message dropped')
+
+                elif failure_config.fail_type == FailType.Delay:
+                    LOGGER.log('ValidatorFI.send', 'message delayed')
+                    delay_thread = threading.Thread(target=send_msg_delayed, args=(
+                        message, dest, failure_config.val))
+                    delay_thread.start()
+
+                elif failure_config.fail_type == FailType.SetAttr:
+                    LOGGER.log('ValidatorFI.send', 'config changed')
+                    super().setattr(failure_config.attr, failure_config.val)
+
+                else:
+                    output('error: ValidatorFI.send: unsupported fail type',
+                           failure_config.fail_type)
+'''
+
+class ValidatorTwin(process, Validator):
+    
+    def send(message, to):
+        super().send(message, self.play_ground)
+        # super().send(message, to)
+
+    
+    def get_leader(round):
+        print("Get Leader for the round : ", round)
+        # print(self.config['round_partitions'][str(round)]['Leader'])
+        
+        if str(round) not in self.config['round_partitions']:
+            pass
+            # Indicate Code termination
+
+        lst = self.config['round_partitions'][str(round)]['Leader']
+        leader_lst = [ self.id_to_validator_map[v] for v in lst ]
+
+        # print(self.leader_election.get_leader(round), leader_lst)
+        # return [self.leader_election.get_leader(round)]
+        return leader_lst
+        # return self.config['round_partitions'][str(round)]
+

@@ -11,7 +11,7 @@ from client import Client
 from config import configs
 from networkPlayground import NetworkPlayground
 from cryptography import Cryptography
-from validator import ValidatorFI
+from validator import ValidatorTwin
 from pathlib import Path
 
 
@@ -35,7 +35,6 @@ class RunDiemBFT(process):
 
         id_to_validator_map = {}
         validator_to_id_map = {}
-
         id = 'A'
 
         os.makedirs('../logs/config' + str(config_id))
@@ -44,8 +43,8 @@ class RunDiemBFT(process):
         play_ground = new(NetworkPlayground, num = 1)
         
 
-        validators = new(ValidatorFI, num=nvalidators)
-        twins = new(ValidatorFI, num=ntwins)
+        validators = new(ValidatorTwin, num=nvalidators)
+        twins = new(ValidatorTwin, num=ntwins)
         clients = new(Client, num=nclients)
 
         for _ in range(nvalidators):
@@ -61,9 +60,9 @@ class RunDiemBFT(process):
             output("Test :" + id)
             id = chr(ord(id) + 1)
 
-        for i, t in enumerate(twins):
-            private_keys_validators[t] = private_key_list_validators[i]
-            public_keys_validators[t] = public_key_list_validators[i]
+        for i, v in enumerate(twins):
+            private_keys_validators[v] = private_key_list_validators[i]
+            public_keys_validators[v] = public_key_list_validators[i]
             id_to_validator_map[id] = v
             validator_to_id_map[v] = id
             id = chr(ord(id) + 1)
@@ -77,7 +76,7 @@ class RunDiemBFT(process):
 
         for i, v in enumerate(validators):
             setup({v}, (config, config_id, i, list(validators), list(clients),
-                        private_keys_validators[v], public_keys_validators, public_keys_clients, play_ground))
+                        private_keys_validators[v], public_keys_validators, public_keys_clients, play_ground, validator_to_id_map, id_to_validator_map))
 
         for i, c in enumerate(clients):
             setup({c}, (config, config_id, i, list(validators),
@@ -86,6 +85,7 @@ class RunDiemBFT(process):
         setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
         start(play_ground)
         start(validators)
+        start(twins)
         start(clients)
 
         await(each(c in clients, has=received(('Done',), from_=c)))
