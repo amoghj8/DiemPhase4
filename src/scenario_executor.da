@@ -32,6 +32,11 @@ class RunDiemBFT(process):
         private_key_list_validators = []
         public_key_list_validators = []
 
+        id_to_validator_map = {}
+        validator_to_id_map = {}
+
+        id = 'A'
+
         os.makedirs('../logs/config' + str(config_id))
         os.makedirs('../ledgers/config' + str(config_id))
 
@@ -47,10 +52,16 @@ class RunDiemBFT(process):
         for i, v in enumerate(validators):
             private_keys_validators[v] = private_key_list_validators[i]
             public_keys_validators[v] = public_key_list_validators[i]
+            id_to_validator_map[id] = v
+            validator_to_id_map[v] = id
+            id = chr(ord(id) + 1)
 
         for i, t in enumerate(twins):
             private_keys_validators[t] = private_key_list_validators[i]
             public_keys_validators[t] = public_key_list_validators[i]
+            id_to_validator_map[id] = v
+            validator_to_id_map[v] = id
+            id = chr(ord(id) + 1)
 
         for c in clients:
             private_key, public_key = Cryptography.generate_key()
@@ -84,7 +95,7 @@ def main():
         shutil.rmtree('../ledgers/')
 
     config_id = 0
-    
+
     for x in os.walk('../scenario'):
         for y in glob.glob(os.path.join(x[0], '*.json')):
             f = open(y)
