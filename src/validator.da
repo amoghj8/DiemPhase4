@@ -137,7 +137,7 @@ class Validator (process):
         LOGGER.log("Validator: process_new_round_event ends", None)
 
     '''Procedure process proposal msg(P)'''
-    def receive(msg=('Proposal', proposal_msg), from_=p):
+    def receive(msg=('Proposal', proposal_msg, p), from_=pl):
         LOGGER.log_event("Received", "Proposal", proposal_msg, p)
 
         signature_verified = Cryptography.get_verified_message(

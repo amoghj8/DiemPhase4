@@ -42,8 +42,7 @@ class RunDiemBFT(process):
         os.makedirs('../ledgers/config' + str(config_id))
 
         play_ground = new(NetworkPlayground, num = 1)
-        setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
-        start(play_ground)
+        
 
         validators = new(ValidatorFI, num=nvalidators)
         twins = new(ValidatorFI, num=ntwins)
@@ -84,6 +83,8 @@ class RunDiemBFT(process):
             setup({c}, (config, config_id, i, list(validators),
                         private_keys_clients[c], public_keys_validators))
 
+        setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
+        start(play_ground)
         start(validators)
         start(clients)
 

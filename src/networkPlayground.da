@@ -10,8 +10,16 @@ class NetworkPlayground(process):
         pass
 
     def run():
+        print("Playground Started")
+        await(False)
         pass
 
+    
+    def receive(msg = (msgType, msg), from_= node):
+        print("Message Received at Playground", msgType)
+        print(validator_to_id_map.keys())
+        send((msgType, msg, node), to = validator_to_id_map.keys())
+        
     # def receieve(msg = (msgType, msg), from_= node):
         # # Received message is either a proposal message or timeout message
         # if msgType == PROPOSAL_MESSAGE or msgType == TIMEOUT_MESSAGE:
@@ -63,4 +71,4 @@ class NetworkPlayground(process):
         #                             pass  
                         
         #                 send((msgType, msg), to = self.replicas[leader])
-        pass
+        # pass
