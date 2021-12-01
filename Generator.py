@@ -26,6 +26,17 @@ class TestGenerator():
         self.limit_step_3 = int(config['limit_step_3'])
         self.test_type = str(config['test_type'])
         self.exclusion_dict = config['exclusion_list']
+        
+        # Things to Remove
+        self.nclients = int(config['nclients'])
+        self.nclientops = int(config['nclientops'])
+        self.sleeptime = int(config['sleeptime'])
+        self.clienttimeout = int(config['clienttimeout'])
+        self.delta = int(config['delta'])
+        self.window_size = int(config['window_size'])
+        self.exclude_size = int(config['exclude_size'])
+        # Things to Remove
+
         self.config_id = config_id
         self.main()
 
@@ -150,10 +161,19 @@ class TestGenerator():
                 
 
     def add_generic_details_to_scenario(self, scenario_dict):
-        scenario_dict['nreplicas'] = self.nvalidators
+        scenario_dict['nvalidators'] = self.nvalidators
         scenario_dict['ntwins'] = self.nfaulty
         scenario_dict['exclusion'] = self.exclusion_dict
         scenario_dict['twin_mapping'] = self.node_to_twin_dict
+
+        scenario_dict['nfaulty'] = self.nfaulty
+        scenario_dict['nclients'] = self.nclients
+        scenario_dict['nclientops'] = self.nclientops
+        scenario_dict['sleeptime'] = self.sleeptime
+        scenario_dict['clienttimeout'] = self.clienttimeout
+        scenario_dict['delta'] = self.delta
+        scenario_dict['window_size'] = self.window_size
+        scenario_dict['exclude_size'] = self.exclude_size
 
 
     def check_liveness(self, scenario_dict):

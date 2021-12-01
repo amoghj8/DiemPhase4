@@ -2,13 +2,16 @@ import os
 import shutil
 import sys
 import json
+import glob
 
 sys.path.append('../config')
+sys.path.append('../scenario')
 
 from client import Client
 from config import configs
 from cryptography import Cryptography
 from validator import ValidatorFI
+from pathlib import Path
 
 
 class RunDiemBFT(process):
@@ -42,12 +45,10 @@ class RunDiemBFT(process):
             public_key_list_validators.append(public_key)
 
         for i, v in enumerate(validators):
-            private_key, public_key = Cryptography.generate_key()
             private_keys_validators[v] = private_key_list_validators[i]
             public_keys_validators[v] = public_key_list_validators[i]
 
         for i, t in enumerate(twins):
-            private_key, public_key = Cryptography.generate_key()
             private_keys_validators[t] = private_key_list_validators[i]
             public_keys_validators[t] = public_key_list_validators[i]
 
@@ -83,8 +84,12 @@ def main():
         shutil.rmtree('../ledgers/')
 
     config_id = 0
-    for config in configs:
-        p = new(RunDiemBFT)
-        setup(p, (config, config_id))
-        start(p)
-        config_id += 1
+    
+    for x in os.walk('../scenario'):
+        for y in glob.glob(os.path.join(x[0], '*.json')):
+            f = open(y)
+            config = json.load(f)
+            p = new(RunDiemBFT)
+            setup(p, (config, config_id))
+            start(p)
+            config_id += 1

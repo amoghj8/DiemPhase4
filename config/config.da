@@ -167,7 +167,7 @@ configs = [
         },
         "nvalidators": 4,
         "ntwins": 1,
-        "nfaulty": 0,
+        "nfaulty": 1,
         "nclients": 3,
         "nclientops": 2,
         "sleeptime": 1,

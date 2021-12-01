@@ -1,4 +1,4 @@
-PROPOSAL_MESSAGE = "proposal_message"
+PROPOSAL_MESSAGE = "Proposal"
 VOTE_MESSAGE = "vote_message"
 TIMEOUT_MESSAGE = "timeout_message"
 
