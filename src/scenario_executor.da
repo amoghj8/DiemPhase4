@@ -1,0 +1,90 @@
+import os
+import shutil
+import sys
+import json
+
+sys.path.append('../config')
+
+from client import Client
+from config import configs
+from cryptography import Cryptography
+from validator import ValidatorFI
+
+
+class RunDiemBFT(process):
+
+    def setup(config, config_id):
+        self.nvalidators = int(config['nvalidators'])
+        self.ntwins = int(config['ntwins'])
+        self.nclients = int(config['nclients'])
+        self.nfaulty = int(config['nfaulty'])
+
+    def run():
+
+        private_keys_validators = {}
+        public_keys_validators = {}
+        private_keys_clients = {}
+        public_keys_clients = {}
+
+        private_key_list_validators = []
+        public_key_list_validators = []
+
+        os.makedirs('../logs/config' + str(config_id))
+        os.makedirs('../ledgers/config' + str(config_id))
+
+        validators = new(ValidatorFI, num=nvalidators)
+        twins = new(ValidatorFI, num=ntwins)
+        clients = new(Client, num=nclients)
+
+        for _ in range(nvalidators):
+            private_key, public_key = Cryptography.generate_key()
+            private_key_list_validators.append(private_key)
+            public_key_list_validators.append(public_key)
+
+        for i, v in enumerate(validators):
+            private_key, public_key = Cryptography.generate_key()
+            private_keys_validators[v] = private_key_list_validators[i]
+            public_keys_validators[v] = public_key_list_validators[i]
+
+        for i, t in enumerate(twins):
+            private_key, public_key = Cryptography.generate_key()
+            private_keys_validators[t] = private_key_list_validators[i]
+            public_keys_validators[t] = public_key_list_validators[i]
+
+        for c in clients:
+            private_key, public_key = Cryptography.generate_key()
+            private_keys_clients[c] = private_key
+            public_keys_clients[c] = public_key
+
+        validators.update(twins)
+
+        for i, v in enumerate(validators):
+            setup({v}, (config, config_id, i, list(validators), list(clients),
+                        private_keys_validators[v], public_keys_validators, public_keys_clients))
+
+        for i, c in enumerate(clients):
+            setup({c}, (config, config_id, i, list(validators),
+                        private_keys_clients[c], public_keys_validators))
+
+        start(validators)
+        start(clients)
+
+        await(each(c in clients, has=received(('Done',), from_=c)))
+        output("All clients done, informing all validators.", config_id)
+        send(('Done',), to=validators)
+
+
+def main():
+
+    if os.path.exists('../logs/') and os.path.isdir('../logs/'):
+        shutil.rmtree('../logs/')
+
+    if os.path.exists('../ledgers/') and os.path.isdir('../ledgers/'):
+        shutil.rmtree('../ledgers/')
+
+    config_id = 0
+    for config in configs:
+        p = new(RunDiemBFT)
+        setup(p, (config, config_id))
+        start(p)
+        config_id += 1

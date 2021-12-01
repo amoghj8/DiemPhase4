@@ -1,0 +1,318 @@
+{
+    "round_partitions": {
+        "0": {
+            "Leader": [
+                "B"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "B"
+                ],
+                [
+                    "C",
+                    "D",
+                    "E"
+                ]
+            ]
+        },
+        "1": {
+            "Leader": [
+                "D"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "B"
+                ],
+                [
+                    "C",
+                    "D",
+                    "E"
+                ]
+            ]
+        },
+        "2": {
+            "Leader": [
+                "D"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "B",
+                    "C",
+                    "D"
+                ],
+                [
+                    "E"
+                ]
+            ]
+        },
+        "3": {
+            "Leader": [
+                "B"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "B",
+                    "D",
+                    "E"
+                ],
+                [
+                    "C"
+                ]
+            ]
+        },
+        "4": {
+            "Leader": [
+                "C"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "D"
+                ],
+                [
+                    "B",
+                    "C",
+                    "E"
+                ]
+            ]
+        },
+        "5": {
+            "Leader": [
+                "A",
+                "E"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "D",
+                    "E"
+                ],
+                [
+                    "B",
+                    "C"
+                ]
+            ]
+        },
+        "6": {
+            "Leader": [
+                "D"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "B"
+                ],
+                [
+                    "C",
+                    "D",
+                    "E"
+                ]
+            ]
+        },
+        "7": {
+            "Leader": [
+                "C"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "C",
+                    "D",
+                    "E"
+                ],
+                [
+                    "B"
+                ]
+            ]
+        },
+        "8": {
+            "Leader": [
+                "C"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "D",
+                    "E"
+                ],
+                [
+                    "B",
+                    "C"
+                ]
+            ]
+        },
+        "9": {
+            "Leader": [
+                "B"
+            ],
+            "Partition": [
+                [
+                    "A",
+                    "B",
+                    "D",
+                    "E"
+                ],
+                [
+                    "C"
+                ]
+            ]
+        }
+    },
+    "nvalidators": 4,
+    "ntwins": 1,
+    "nfaulty": 0,
+    "nclients": 3,
+    "nclientops": 2,
+    "sleeptime": 1,
+    "clienttimeout": 10,
+    "delta": 2,
+    "window_size": 5,
+    "exclude_size": 0,
+    "exclusion": {
+        "1": {
+            "A": {
+                "B": {
+                    "messageType": "proposal_message"
+                },
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "B": {
+                "C": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "2": {
+            "C": {
+                "D": {
+                    "messageType": "proposal_message"
+                }
+            },
+            "B": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "0": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "3": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "4": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "5": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "6": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "7": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "8": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        },
+        "9": {
+            "A": {
+                "E": {
+                    "messageType": "*"
+                }
+            },
+            "E": {
+                "A": {
+                    "messageType": "*"
+                }
+            }
+        }
+    },
+    "twin_mapping": {
+        "A": "E"
+    }
+}
