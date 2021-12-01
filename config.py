@@ -1,7 +1,7 @@
 configs = [
     {
         'nvalidators': 4,
-        'all_leaders' : True,
+        'all_leaders' : False,
         'nfaulty': 1,
         'limit_step_1' : 15,
         'limit_step_2' : 60,

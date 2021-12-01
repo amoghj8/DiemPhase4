@@ -85,7 +85,7 @@ class RunDiemBFT(process):
         setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
         start(play_ground)
         start(validators)
-        start(twins)
+        # start(twins)
         start(clients)
 
         await(each(c in clients, has=received(('Done',), from_=c)))
