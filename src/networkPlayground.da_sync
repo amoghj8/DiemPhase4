@@ -1,0 +1,149 @@
+PROPOSAL_MESSAGE = "Proposal"
+VOTE_MESSAGE = "vote_message"
+TIMEOUT_MESSAGE = "timeout_message"
+
+class NetworkPlayground(process):
+
+    def setup(config, id_to_validator_map, validator_to_id_map):
+        # output("Network playground setup completed", level=logging.DEBUG)
+        # self.currentRound = "-1"
+        print(id_to_validator_map)
+        print(validator_to_id_map)
+        # self.max_round = 0
+        pass
+
+    def run():
+        print("Playground Started")
+        await(False)
+        pass
+
+
+    def get_partition(round, node):
+        # self.max_round = max(self.max_round, int(round))
+        result = []
+        for partition in self.config['round_partitions'][str(self.round)]["Partition"]:
+            if node in partition:
+                # print(partition)
+                for n in partition:
+                    if n not in result:
+                        result.append(n)
+        return result
+
+
+    def get_nodes_list(partition):
+        lst = []
+        for node in partition:
+            lst.append(self.id_to_validator_map[node])
+        return lst
+    
+
+    def fetch_next_leader(round):
+        next_round = round + 1
+        next_leader = self.config['round_partitions'][str(next_round)]["Leader"]
+        return next_leader
+
+    def send_to_validators(msg_type, msg, src_node, dest_list):
+        # send((msgType, msg, node), to = validator_to_id_map.keys())
+        print("Sending ", msg_type, " from ", src_node, " to", dest_list)
+        send((msg_type, msg, src_node), to = dest_list)
+        
+    
+    def receive(msg=('Proposal', p_msg), from_=node):
+        currentRound = str(p_msg.block.round)
+        node_id = self.validator_to_id_map[node]
+        current_partition = get_partition(currentRound, node_id)
+        print("Proposal Message receive from ", node_id, " : Which is in the partition ", current_partition)
+        nodes_list = get_nodes_list(current_partition)
+        send_to_validators('Proposal', p_msg, node, nodes_list)
+        
+
+    def receive(msg=('Timeout', t_msg), from_=node):
+        currentRound =  str(t_msg.tmo_info.round)
+        node_id = self.validator_to_id_map[node]
+        current_partition = get_partition(currentRound, node_id)
+        print("Timeout Message receive from ", node_id, " : Which is in the partition ", current_partition, " Round : ", currentRound)
+        nodes_list = get_nodes_list(current_partition)
+        send_to_validators('Timeout', t_msg, node, nodes_list)
+
+
+    def receive(msg=('Vote', v_msg), from_=node):
+        currentRound = v_msg.vote_info.round
+        node_id = self.validator_to_id_map[node]
+        current_partition = get_partition(currentRound, node_id)
+        next_leader_list = fetch_next_leader(currentRound)
+        for nxt_l in next_leader_list:
+            if nxt_l in current_partition:
+                nxt_l_validator = self.id_to_validator_map[nxt_l]
+                send_to_validators('Vote', v_msg, node, [nxt_l_validator])
+
+
+    def receive(msg=('Sync_Request', currentRound), from_=node):
+        node_id = self.validator_to_id_map[node]
+        print("Got Sync_Request Message from ", node_id, " for the round ", currentRound)
+        current_partition = get_partition(currentRound, node_id)
+        nodes_list = get_nodes_list(current_partition)
+        send_to_validators('Sync_Request', currentRound, node, nodes_list)
+
+
+    def receive(msg=('Sync_Reply', message, currentRound), from_=node):
+        node_id = self.validator_to_id_map[node]
+        print("Got Sync_Reply Message from ", node_id, " for the round ", currentRound)
+        current_partition = get_partition(currentRound, node_id)
+        nodes_list = get_nodes_list(current_partition)
+        send_to_validators('Sync_Reply', message, node, nodes_list)
+
+
+    '''
+    def receive_1(msg = (msgType, msg), from_= node):
+        # Received message is either a proposal message or timeout message
+        if msgType == PROPOSAL_MESSAGE or msgType == TIMEOUT_MESSAGE:
+           # Get current round if message is proposal message 
+            if msgType == PROPOSAL_MESSAGE:
+                self.currentRound = str(msg.block.round)
+            # Get the current round if message is timeout message
+            else:
+                self.currentRound =  str(msg.timeout_info.round)
+            
+            for partition in self.round_partitions_map[self.currentRound]["Partition"]:
+                if node in partition:
+                    for replica in partition:
+                        
+                        if replica == node:
+                            pass
+                        
+                        elif self.exclustion_map[current_round][node] == "*":
+                            if self.exclusion_map[current_round][node]["messageType"] == msgType:
+                                pass
+                            elif self.exclusion_map[current_round][node]["messageType"] == "*":
+                                pass
+                        
+                        elif self.exclusion_map[current_round][node] == replica:
+                            if self.exclusion_map[current_round][node]["messageType"] == msgType:
+                                pass
+                            elif self.exclusion_map[current_round][node]["messageType"] == "*":
+                                pass     
+                        
+                        send((msgType, msg), to = self.replicas[replica])
+        
+        # Received message is a vote message to be sent
+        else:
+            round = msg.vote_info.round
+            for partition in self.round_partitions_map[self.round]["Partition"]:
+                if node in partition:
+                    for leader in self.round_partitions_map[self.round]["Leader"]:
+                        if leader in partition:
+                            if self.exclustion_map[round][node] == "*":
+                                if self.exclusion_map[round][node]["messageType"] == msgType:
+                                    pass
+                                elif self.exclusion_map[round][node]["messageType"] == "*":
+                                    pass
+        
+                            elif self.exclusion_map[round][node] == leader:
+                                if self.exclusion_map[round][node]["messageType"] == msgType:
+                                    pass
+                                elif self.exclusion_map[round][node]["messageType"] == "*":
+                                    pass  
+                        
+                        send((msgType, msg), to = self.replicas[leader])
+        pass
+    '''
