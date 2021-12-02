@@ -94,6 +94,7 @@ class RunDiemBFT(process):
         send(('Done',), to=validators)
         time.sleep(15)
         send(('Done',), to=play_ground)
+        send(('Done',), to=clients)
 
     def receive(msg=('Done',), from_=p):
         self.isdone = True

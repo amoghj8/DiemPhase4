@@ -442,7 +442,7 @@ class ValidatorTwin(process, Validator):
         if str(round) not in self.config['round_partitions']:
             output("Stopping1")
             super().send(('Done',), to=parent())
-            return
+            return []
             # Indicate Code termination
 
         lst = self.config['round_partitions'][str(round)]['Leader']
