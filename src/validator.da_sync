@@ -79,7 +79,6 @@ class Validator (process):
         self.pacemaker.start_timer(1)
         LOGGER.log(replicas[validator_id])
         await(received(('Done',), from_=parent()))
-        output("Stopping")
         self.pacemaker.stop_timer(self.pacemaker.current_round)
         output("Validator", self.validator_id, "is exiting")
 
@@ -166,7 +165,7 @@ class Validator (process):
         self.pending_proposal_message.append([proposal_msg, p])
         self.pending_proposal_message = sorted(self.pending_proposal_message, key=lambda x: x[0].block.round)
 
-        ## Block earlier ones
+        ## Block earlier ones        
 
         # process_proposal_message(proposal_msg, p)
         ret = process_pending_message()
@@ -198,14 +197,14 @@ class Validator (process):
         print("Received Sync Request To Validtor from the Node ", p)
         send(('Sync_Reply', self.committed_proposal_message, round_rqd), to=self.replicas)
 
-
+    
     def receive(msg=('Sync_Reply', remote_message_list, p), from_=plg):
         print("Received History *******************************************************", remote_message_list)
         for messages in remote_message_list:
             self.pending_proposal_message.append(messages)
             self.pending_proposal_message = sorted(self.pending_proposal_message, key=lambda x: x[0].block.round)
         process_pending_message()
-
+      
 
 
     def process_proposal_message(proposal_msg, p):
@@ -240,7 +239,7 @@ class Validator (process):
 
             '''Block-Tree.execute and insert(P) // Adds a new speculative state to the Ledger'''
             self.blocktree.execute_and_insert(proposal_msg.block)
-
+            
             '''if P.block.round 6= round ∨ P.sender 6= leader ∨ P.block.author 6= leader then
                     return'''
             if proposal_msg.block.round != round or replicas[proposal_msg.sender] not in leader or replicas[proposal_msg.block.author] not in leader:
@@ -257,7 +256,7 @@ class Validator (process):
             if len(proposal_msg.block.payload) == 0:
                 self.should_start_new_round = True
 
-
+            
 
             '''vote msg ← Safety.make vote(P.block, P.last round tc)'''
             vote_msg = self.safety.make_vote(
@@ -271,7 +270,7 @@ class Validator (process):
                      to=next_leader)
                 LOGGER.log_event("Sent", "Vote", vote_msg, next_leader)
 
-
+            
 
         else:
             LOGGER.log_action("Verified ProposalMsg signature", False)
@@ -440,9 +439,7 @@ class ValidatorTwin(process, Validator):
         # print(self.config['round_partitions'][str(round)]['Leader'])
         
         if str(round) not in self.config['round_partitions']:
-            output("Stopping1")
-            super().send(('Done',), to=parent())
-            return
+            pass
             # Indicate Code termination
 
         lst = self.config['round_partitions'][str(round)]['Leader']
@@ -452,3 +449,4 @@ class ValidatorTwin(process, Validator):
         # return [self.leader_election.get_leader(round)]
         return leader_lst
         # return self.config['round_partitions'][str(round)]
+
