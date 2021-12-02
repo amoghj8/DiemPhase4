@@ -42,7 +42,8 @@ class Validator (process):
         self.leader_election = LeaderElection(
             validator_id, replicas, self.ledger, self.pacemaker, config['window_size'], config['exclude_size'])
 
-        self.history = {}
+        self.committed_proposal_message = [] # Contains Proposal Message and sender
+        self.pending_proposal_message = []
 
         Cryptography.private_key = self.private_key
         Cryptography.replicas = self.replicas
@@ -78,6 +79,7 @@ class Validator (process):
         self.pacemaker.start_timer(1)
         LOGGER.log(replicas[validator_id])
         await(received(('Done',), from_=parent()))
+        output("Stopping")
         self.pacemaker.stop_timer(self.pacemaker.current_round)
         output("Validator", self.validator_id, "is exiting")
 
@@ -159,6 +161,54 @@ class Validator (process):
 
     '''Procedure process proposal msg(P)'''
     def receive(msg=('Proposal', proposal_msg, p), from_=plg):
+        # self.history.append([self.pacemaker.current_round, 'Proposal', proposal_msg, p])
+        # check_for_sync_up("Proposal", proposal_msg)
+        self.pending_proposal_message.append([proposal_msg, p])
+        self.pending_proposal_message = sorted(self.pending_proposal_message, key=lambda x: x[0].block.round)
+
+        ## Block earlier ones        
+
+        # process_proposal_message(proposal_msg, p)
+        ret = process_pending_message()
+        if(not ret):
+            print("Requesting SynC Up ********************************************")
+            request_sync_up(proposal_msg.block.round)
+
+
+    def process_pending_message():
+        flag = False
+        for lst in self.pending_proposal_message:
+            prev = -1
+            if(len(self.committed_proposal_message) == 0):
+                prev = 0
+            else:
+                prev = self.committed_proposal_message[-1][0].block.round
+            msg = lst[0]
+            if prev+1 == msg.block.round:
+                flag = True
+                process_proposal_message(msg, lst[1])
+        return flag
+
+
+    def request_sync_up(round_nbr):
+        print("Requesting Sync up for *********************************************************")
+        send(('Sync_Request', round_nbr), to=self.replicas)
+
+    def receive(msg=('Sync_Request', round_rqd, p), from_=plg):
+        print("Received Sync Request To Validtor from the Node ", p)
+        send(('Sync_Reply', self.committed_proposal_message, round_rqd), to=self.replicas)
+
+    
+    def receive(msg=('Sync_Reply', remote_message_list, p), from_=plg):
+        print("Received History *******************************************************", remote_message_list)
+        for messages in remote_message_list:
+            self.pending_proposal_message.append(messages)
+            self.pending_proposal_message = sorted(self.pending_proposal_message, key=lambda x: x[0].block.round)
+        process_pending_message()
+      
+
+
+    def process_proposal_message(proposal_msg, p):
         LOGGER.log_event("Received", "Proposal", proposal_msg, p)
 
         signature_verified = Cryptography.get_verified_message(
@@ -168,6 +218,9 @@ class Validator (process):
             LOGGER.log_action("Verified ProposalMsg signature", True)
 
             self.should_start_new_round = False
+
+            self.committed_proposal_message.append([proposal_msg, p])
+            self.committed_proposal_message = sorted(self.committed_proposal_message, key=lambda x: x[0].block.round)
 
             if proposal_msg.block.qc is not None and p != replicas[validator_id]:
                 '''process certificate qc(P.block.qc)'''
@@ -184,6 +237,10 @@ class Validator (process):
             round = self.pacemaker.current_round
             '''leader ← LeaderElection.get leader(current round)'''
             leader = self.get_leader(round)
+
+            '''Block-Tree.execute and insert(P) // Adds a new speculative state to the Ledger'''
+            self.blocktree.execute_and_insert(proposal_msg.block)
+            
             '''if P.block.round 6= round ∨ P.sender 6= leader ∨ P.block.author 6= leader then
                     return'''
             if proposal_msg.block.round != round or replicas[proposal_msg.sender] not in leader or replicas[proposal_msg.block.author] not in leader:
@@ -200,8 +257,7 @@ class Validator (process):
             if len(proposal_msg.block.payload) == 0:
                 self.should_start_new_round = True
 
-            '''Block-Tree.execute and insert(P) // Adds a new speculative state to the Ledger'''
-            self.blocktree.execute_and_insert(proposal_msg.block)
+            
 
             '''vote msg ← Safety.make vote(P.block, P.last round tc)'''
             vote_msg = self.safety.make_vote(
@@ -215,12 +271,10 @@ class Validator (process):
                      to=next_leader)
                 LOGGER.log_event("Sent", "Vote", vote_msg, next_leader)
 
+            
+
         else:
             LOGGER.log_action("Verified ProposalMsg signature", False)
-
-
-    def process_proposal_message():
-        pass
 
     '''Procedure process vote msg(M)'''
     def receive(msg=('Vote', vote_msg, p), from_=plg):
@@ -386,7 +440,9 @@ class ValidatorTwin(process, Validator):
         # print(self.config['round_partitions'][str(round)]['Leader'])
         
         if str(round) not in self.config['round_partitions']:
-            pass
+            output("Stopping1")
+            super().send(('Done',), to=parent())
+            return
             # Indicate Code termination
 
         lst = self.config['round_partitions'][str(round)]['Leader']
@@ -396,4 +452,3 @@ class ValidatorTwin(process, Validator):
         # return [self.leader_election.get_leader(round)]
         return leader_lst
         # return self.config['round_partitions'][str(round)]
-

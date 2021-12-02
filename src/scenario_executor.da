@@ -3,6 +3,7 @@ import shutil
 import sys
 import json
 import glob
+import time
 
 sys.path.append('../config')
 sys.path.append('../scenario')
@@ -22,6 +23,7 @@ class RunDiemBFT(process):
         self.ntwins = int(config['ntwins'])
         self.nclients = int(config['nclients'])
         self.nfaulty = int(config['nfaulty'])
+        self.isdone = False
 
     def run():
 
@@ -86,10 +88,15 @@ class RunDiemBFT(process):
         start(validators)
         # start(twins)
         start(clients)
-
-        await(each(c in clients, has=received(('Done',), from_=c)))
-        output("All clients done, informing all validators.", config_id)
+    
+        await(self.isdone == True)
+        output("All rounds done, informing all validators.", config_id)
         send(('Done',), to=validators)
+        time.sleep(15)
+        send(('Done',), to=play_ground)
+
+    def receive(msg=('Done',), from_=p):
+        self.isdone = True
 
 
 def main():
