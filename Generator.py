@@ -29,7 +29,7 @@ class TestGenerator():
         self.test_type = str(config['test_type'])
         self.exclusion_dict = config['exclusion_list']
         self.quorum_size_bug = config['quorum_size_bug']
-        self.multiple_votes_bug = config['mutliple_votes_bug']
+        self.multiple_votes_bug = config['conflicting_votes_bug']
         
         
         # Things to Remove
