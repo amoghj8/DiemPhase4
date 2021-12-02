@@ -96,6 +96,7 @@ class TestGenerator():
                 round_dict['Leader'] = leader
                 round_dict['Partition'] = partition
                 test_dict['round_partitions'][round] = round_dict
+                test_dict['exclusion_flag'] = 0
             live = self.check_liveness(test_dict)
             # print("Liveness - config_id : ", config_id, " Scenario id : ", scenario_nbr, " Live : ", live)
             self.generate_intra_partition_exclude_list()
