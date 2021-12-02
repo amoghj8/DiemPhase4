@@ -1,7 +1,7 @@
 configs = [
     {
         'nvalidators': 4,
-        'all_leaders' : False,
+        'all_leaders' : True,
         'nfaulty': 1,
         'limit_step_1' : 15,
         'limit_step_2' : 60,
@@ -13,7 +13,7 @@ configs = [
         'nclientops': 5,
         'sleeptime': 1,
         'clienttimeout': 10,
-        'delta': 5,
+        'delta': 0.5,
         'window_size': 5,
         'exclude_size': 1,
         'exclusion_list': {
@@ -45,7 +45,7 @@ configs = [
     },
     {
         'nvalidators': 4,
-        'all_leaders' : False,
+        'all_leaders' : True,
         'nfaulty': 1,
         'limit_step_1' : 5,
         'limit_step_2' : 5,
@@ -57,7 +57,7 @@ configs = [
         'nclientops': 5,
         'sleeptime': 1,
         'clienttimeout': 10,
-        'delta': 5,
+        'delta': 0.5,
         'window_size': 5,
         'exclude_size': 1,
         'exclusion_list': {

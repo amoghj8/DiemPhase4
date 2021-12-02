@@ -6,9 +6,11 @@ import random
 import json
 import math
 
+
 # Todo : Re generate the scenario in case liveness is not guaranteed 
 class TestGenerator():
 
+    generate_cases = True
 
     # read the config and load all the values
     def setup(self, config, config_id):
@@ -32,7 +34,7 @@ class TestGenerator():
         self.nclientops = int(config['nclientops'])
         self.sleeptime = int(config['sleeptime'])
         self.clienttimeout = int(config['clienttimeout'])
-        self.delta = int(config['delta'])
+        self.delta = float(config['delta'])
         self.window_size = int(config['window_size'])
         self.exclude_size = int(config['exclude_size'])
         # Things to Remove
@@ -43,7 +45,11 @@ class TestGenerator():
 
     def main(self):
         leader_limit = int(math.ceil(self.limit_step_2/self.limit_step_1))
-        self.partition_list = self.partitionGenerator(self.nodes, self.partition_size, self.limit_step_1)
+        if self.generate_cases == False:
+            self.partition_list = self.partitionGenerator(self.nodes, self.partition_size, self.limit_step_1)
+        else:
+            generatedPartitions = self.partitionGeneratorHappy(self.nodes, self.partition_size)
+            self.partition_list = self.getCases(generatedPartitions)
         self.leader_list = self.get_leader(self.all_leaders, self.nodes, self.node_to_twin_dict, leader_limit)
         self.generate_test_cases(self.config_id, self.partition_list, self.leader_list, self.limit_step_3, self.nbr_of_rounds, self.test_type)
 
@@ -82,7 +88,7 @@ class TestGenerator():
         for scenario_nbr in range(1, nbr_of_scenario+1):
             test_dict = {}
             test_dict['round_partitions'] = {}
-            for round in range(nbr_of_rounds):
+            for round in range(1, nbr_of_rounds+1):
                 round_dict = {}
                 if test_type == 'DETERMINISTIC':
                     if leader_index == len(leader_list) - 1:  # go to next partition if all possible leader-partition pair is created for current partition
@@ -93,6 +99,14 @@ class TestGenerator():
                     partition_index = random.randint(0, len(partition_list)-1)
                 leader = leader_list[leader_index] 
                 partition = partition_list[partition_index]
+                if self.generate_cases == True:
+                    for p in partition:
+                        if len(p) >= 2 * self.nfaulty + 1:
+                            continue
+                        for node in self.nodes:
+                            if len(p) < self.nfaulty+1:
+                                if node not in p and node not in self.node_to_twin_dict:
+                                    p.append(node)
                 round_dict['Leader'] = leader
                 round_dict['Partition'] = partition
                 test_dict['round_partitions'][round] = round_dict
@@ -106,6 +120,43 @@ class TestGenerator():
                 json.dump(test_dict, scene_file, indent=4)
 
 
+    def getCases(self, generatedPartitions):
+        resultantList = []
+        for partitions in generatedPartitions:
+            for partition in partitions:
+                if len(partition) >= 2 * self.nfaulty + 1:
+                    resultantList.append(partitions)
+                    break
+        return resultantList
+
+    def partitionGeneratorHappy(self, inputList, numberOfPartitions):
+        result = []
+        if len(inputList) < numberOfPartitions or  numberOfPartitions < 1 :
+            return result
+        if numberOfPartitions == 1:
+            partition = []
+            partition.append(inputList[:])
+            result.append(partition)
+            return result
+        sets = []
+        sets.append(inputList[len(inputList)-1])
+        #Partition the input to size (x-1, y-1)
+        secondPartition = self.partitionGeneratorHappy(inputList[0:len(inputList)-1], numberOfPartitions-1)
+        for i in range(len(secondPartition)):
+            tempList = secondPartition[i]
+            l = tempList[:]
+            l.append(sets)
+            result.append(l)
+        # Partition the elements to size (x-1, y) by calling the function recursively   
+        firstPartition = self.partitionGeneratorHappy(inputList[0:len(inputList)-1], numberOfPartitions)
+        for i in range(len(firstPartition)):
+            for j in range(len(firstPartition[i])):
+                l = []
+                for lst in firstPartition[i]:
+                    l.append(lst[:])
+                l[j].append(inputList[len(inputList)-1])
+                result.append(l)
+        return result
 
     # To partition input of (x, y) where x is the number of input elements and y is the number of partitions, we can do that in two steps: 
     # Scenario 1: Partition the input (x-1, y-1) and add xth element to another partition

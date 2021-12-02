@@ -18,18 +18,17 @@ class NetworkPlayground(process):
         await(self.isdone == True)
         output("exit playground")
 
-
     def get_partition(round, node):
         # self.max_round = max(self.max_round, int(round))
         result = []
-        for partition in self.config['round_partitions'][str(self.round)]["Partition"]:
-            if node in partition:
-                # print(partition)
-                for n in partition:
-                    if n not in result:
-                        result.append(n)
-        return result
-
+        if str(self.round) in self.config['round_partitions']:
+            for partition in self.config['round_partitions'][str(self.round)]["Partition"]:
+                if node in partition:
+                    # print(partition)
+                    for n in partition:
+                        if n not in result:
+                            result.append(n)
+            return result
 
     def get_nodes_list(partition):
         lst = []
@@ -37,11 +36,11 @@ class NetworkPlayground(process):
             lst.append(self.id_to_validator_map[node])
         return lst
     
-
     def fetch_next_leader(round):
         next_round = round + 1
-        next_leader = self.config['round_partitions'][str(next_round)]["Leader"]
-        return next_leader
+        if str(next_round) in self.config['round_partitions']:
+            next_leader = self.config['round_partitions'][str(next_round)]["Leader"]
+            return next_leader
 
     def send_to_validators(msg_type, msg, src_node, dest_list):
         # send((msgType, msg, node), to = validator_to_id_map.keys())
