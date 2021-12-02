@@ -8,7 +8,7 @@ configs = [
         'limit_step_3' : 5,
         'partition_size' : 2,
         'nbr_of_rounds' : 10,
-        'test_type' : 'RANDOM',
+        'test_type' : 'DETERMINISTIC',
         'nclients': 5,
         'nclientops': 5,
         'sleeptime': 1,
@@ -16,6 +16,8 @@ configs = [
         'delta': 0.5,
         'window_size': 5,
         'exclude_size': 1,
+        'quorum_size_bug': False,
+        'mutliple_votes_bug': False,
         'exclusion_list': {
             "1": {
                 "A" : {

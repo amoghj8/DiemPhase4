@@ -1,5 +1,5 @@
 import threading
-
+import os
 from cryptography import Cryptography
 from logger_util import LOGGER
 
@@ -31,9 +31,9 @@ class Client(process):
         LOGGER.log_event("Sent", "Request", request, validators)
 
         # Wait until clienttimeout
-        timer = threading.Timer(config['clienttimeout'], retransmit_request, args=(
-            request, self.pending_success_results, self.f))
-        timer.start()
+        # timer = threading.Timer(config['clienttimeout'], retransmit_request, args=(
+        #     request, self.pending_success_results, self.f))
+        # timer.start()
 
     def run():
         for i in range(nops):
@@ -48,7 +48,7 @@ class Client(process):
 
         # Wait until we have received valid (f+1) responses for all its requests
         await(received(('Done',), from_=parent()))
-        output("Stopping")
+        output("Stopping ", os.getpid())
 
     def receive(msg=('Response', resp), from_=validator):
         LOGGER.log_event("Received", "Response", resp, validator)

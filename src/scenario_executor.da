@@ -24,6 +24,7 @@ class RunDiemBFT(process):
         self.nclients = int(config['nclients'])
         self.nfaulty = int(config['nfaulty'])
         self.isdone = False
+        self.liveness_bound = int(config['liveness_bound'])
 
     def run():
 
@@ -88,17 +89,67 @@ class RunDiemBFT(process):
         start(validators)
         # start(twins)
         start(clients)
+
+        liveness_check()
     
         await(self.isdone == True)
         output("All rounds done, informing all validators.", config_id)
+
+        exit_executor(validators, clients, play_ground)
+
+    def exit_executor(validators, clients, play_ground):
         send(('Done',), to=validators)
-        time.sleep(15)
         send(('Done',), to=play_ground)
         send(('Done',), to=clients)
+        time.sleep(2)
+        output("Exiting Scenario Executor", os.getpid())
+        safety_check()
 
     def receive(msg=('Done',), from_=p):
         self.isdone = True
 
+
+    # Check for Safety After running for One Scenario
+    def safety_check():
+        ledger_dir = "../ledgers/config" + str(self.config_id)
+        message_count = {}
+        for x in os.walk(ledger_dir):
+            for ledger in glob.glob(os.path.join(x[0], '*.ledger')):
+                file = open(ledger)
+                Lines = file.readlines()
+                for line in Lines:
+                    msg = line.strip()
+                    if msg not in message_count:
+                        message_count[msg] = 0
+                    message_count[msg] = message_count[msg]+1
+        
+        for key, value in message_count.items():
+            if value < 2 * self.nfaulty + 1:
+                print("Safety Violated")
+                return
+        print(message_count)
+        print("Safety Not Violated")
+
+
+    def liveness_check():
+        prev_count = -1
+        while(self.isdone == False):
+            print("Liveness bound ***************", self.liveness_bound)
+            ledger_dir = "../ledgers/config" + str(self.config_id)
+            current_count = 0
+
+            for x in os.walk(ledger_dir):
+                for ledger in glob.glob(os.path.join(x[0], '*.ledger')):
+                    file = open(ledger)
+                    Lines = file.readlines()
+                    current_count += len(Lines)
+            if current_count == prev_count:
+                print("Liveness bound violated")
+                self.isdone = True
+                break
+            else:
+                prev_count = current_count
+            time.sleep(5)
 
 def main():
 

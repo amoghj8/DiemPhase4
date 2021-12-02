@@ -28,6 +28,9 @@ class TestGenerator():
         self.limit_step_3 = int(config['limit_step_3'])
         self.test_type = str(config['test_type'])
         self.exclusion_dict = config['exclusion_list']
+        self.quorum_size_bug = config['quorum_size_bug']
+        self.multiple_votes_bug = config['mutliple_votes_bug']
+        
         
         # Things to Remove
         self.nclients = int(config['nclients'])
@@ -111,6 +114,7 @@ class TestGenerator():
                 round_dict['Partition'] = partition
                 test_dict['round_partitions'][round] = round_dict
                 test_dict['exclusion_flag'] = 0
+                test_dict['liveness_bound'] = 4 * self.delta
             live = self.check_liveness(test_dict)
             # print("Liveness - config_id : ", config_id, " Scenario id : ", scenario_nbr, " Live : ", live)
             self.generate_intra_partition_exclude_list()

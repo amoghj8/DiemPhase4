@@ -5,7 +5,7 @@ from object_types import LedgerCommitInfo, TimeoutInfo, VoteInfo, VoteMsg
 
 class Safety:
 
-    def __init__(self, validator_id, replicas, ledger, blocktree):
+    def __init__(self, validator_id, replicas, ledger, blocktree, bug):
         '''private key; // Own private key
         public keys; // Public keys of all validators
         highest vote round; // initially 0
@@ -16,6 +16,7 @@ class Safety:
         self.validator = replicas[validator_id]
         self.ledger = ledger
         self.blocktree = blocktree
+        self.bug = bug
 
     '''Procedure increase highest vote round(round)'''
 
@@ -67,7 +68,11 @@ class Safety:
             '''// 1. must vote in monotonically increasing rounds
             // 2. must extend a smaller round
             return false'''
-            return False
+            flag = self.bug == 1
+            if flag:
+                return True
+            else:
+                return False
         LOGGER.log("Safety: __safe_to_vote returns2", self.__consecutive(
             block_round, qc_round) or self.__safe_to_extend(block_round, qc_round, tc))
         '''return consecutive(block round, qc round) ∨ safe to extend(block round, qc round, tc)'''

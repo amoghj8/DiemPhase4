@@ -47,7 +47,6 @@ class NetworkPlayground(process):
         send((msg_type, msg, src_node), to = dest_list)
         
     def receive(msg=('Done',), from_=p):
-        output("hereeeeeeeeeee")
         self.isdone = True
 
     def receive(msg=('Proposal', p_msg), from_=node):

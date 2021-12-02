@@ -6,7 +6,7 @@ from object_types import TC, TimeoutMsg
 
 class Pacemaker:
 
-    def __init__(self, validator_id, replicas, blocktree, safety, nfaulty, delta, send_timeout_msg):
+    def __init__(self, validator_id, replicas, blocktree, safety, nfaulty, delta, send_timeout_msg, bug):
         '''current round; // Initially zero
         last round tc; // Initially ⊥
         pending timeouts ; // Timeouts per rounda'''
@@ -27,6 +27,7 @@ class Pacemaker:
         self.safety = safety
         self.replicas = replicas
         self.send_timeout_msg = send_timeout_msg
+        self.bug = bug
 
     '''Function get round timer(r)'''
 
@@ -106,7 +107,8 @@ class Pacemaker:
             self.local_timeout_round()  # Bracha timeout
 
         '''if |pending timeouts[tmo info.round].senders| == 2f + 1 then'''
-        if len(self.tmo_senders[tmo_info.round]) == 2*self.f + 1:
+        flag = self.bug == 1
+        if (not flag and len(self.tmo_senders[tmo_info.round]) == 2*self.f + 1) or (flag and len(self.tmo_senders[tmo_info.round]) == 2*self.f):
             tmo_high_qc_rounds = []
             for t in self.pending_timeouts[tmo_info.round]:
                 if t.high_qc != None:
