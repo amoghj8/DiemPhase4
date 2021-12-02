@@ -8,7 +8,7 @@ configs = [
         'limit_step_3' : 5,
         'partition_size' : 2,
         'nbr_of_rounds' : 10,
-        'test_type' : 'DETERMINISTIC',
+        'test_type' : 'RANDOM',
         'nclients': 5,
         'nclientops': 5,
         'sleeptime': 1,
@@ -18,6 +18,7 @@ configs = [
         'exclude_size': 1,
         'quorum_size_bug': 0,
         'conflicting_votes_bug': 0,
+        'exclusion_flag': 0,
         'exclusion_list': {
             "1": {
                 "A" : {
