@@ -42,7 +42,10 @@ class Validator (process):
         self.leader_election = LeaderElection(
             validator_id, replicas, self.ledger, self.pacemaker, config['window_size'], config['exclude_size'])
 
-        self.history = {}
+        self.history = [] # list of lists
+        self.pending_list = []
+        self.my_rounds = []
+        self.pending_rounds = []
 
         Cryptography.private_key = self.private_key
         Cryptography.replicas = self.replicas
@@ -159,6 +162,58 @@ class Validator (process):
 
     '''Procedure process proposal msg(P)'''
     def receive(msg=('Proposal', proposal_msg, p), from_=plg):
+        self.history.append([self.pacemaker.current_round, 'Proposal', proposal_msg, p])
+        check_for_sync_up("Proposal", proposal_msg)
+        process_proposal_message(proposal_msg, p)
+
+
+    def check_for_sync_up(msg_type, msg):
+        
+        if msg_type == "Proposal":
+            if msg.block.round > self.pacemaker.current_round + 1:
+                request_sync_up("Proposal", msg.block.round)
+        elif msg_type == "Timeout":
+            if msg.tmo_info.round > self.pacemaker.current_round:
+                request_sync_up("Timeout", msg.tmo_info.round)
+
+    def request_sync_up(msg_type, round_nbr):
+        print("Requesting Sync up for *********************************************************", msg_type)
+        send(('Sync_Request', round_nbr), to=self.replicas)
+
+    def receive(msg=('Sync_Request', round_rqd, p), from_=plg):
+        print("Received Sync Request To Validtor from the Node ", p)
+        send(('Sync_Reply', self.history, round_rqd), to=self.replicas)
+
+    
+    def receive(msg=('Sync_Reply', remote_history, p), from_=plg):
+        print("Received History *******************************************************", remote_history)
+        process(remote_history)
+
+    def process(remote_history):
+                
+        for lst in remote_history:
+            round_nbr = lst[0]
+            if round_nbr in self.my_rounds or round_nbr in self.pending_rounds:
+                continue
+
+            print(lst[0])
+            # self.history.append(lst)
+
+
+
+        # my_rounds = [ lst[0] for lst in self.history ]
+        # print("***********************************")
+        # print("My Rounds List = : ", my_rounds)
+        # print("***********************************")
+        # for lst in remote_history:
+        #     if(lst[0] not in my_rounds):
+        #         self.history.append([lst])
+        #         # my_rounds[lst[0]]
+        # sorted(self.history, key = lambda x : (x[0]))
+        print(self.history)
+
+
+    def process_proposal_message(proposal_msg, p):
         LOGGER.log_event("Received", "Proposal", proposal_msg, p)
 
         signature_verified = Cryptography.get_verified_message(
@@ -217,10 +272,6 @@ class Validator (process):
 
         else:
             LOGGER.log_action("Verified ProposalMsg signature", False)
-
-
-    def process_proposal_message():
-        pass
 
     '''Procedure process vote msg(M)'''
     def receive(msg=('Vote', vote_msg, p), from_=plg):
