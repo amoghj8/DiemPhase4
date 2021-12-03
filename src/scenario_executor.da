@@ -24,10 +24,15 @@ class RunDiemBFT(process):
         self.nclients = int(config['nclients'])
         self.nfaulty = int(config['nfaulty'])
         self.isdone = False
-        self.liveness_bound = int(config['liveness_bound'])
+        self.liveness_bound = 10
+
+    def log(msg):
+        with open('../Executorlogs/config_' + str(self.config_id) + '.log', 'a+') as f:
+            sys.stdout = f # Change the standard output to the file we created.
+            print(msg)
 
     def run():
-
+        
         private_keys_validators = {}
         public_keys_validators = {}
         private_keys_clients = {}
@@ -75,7 +80,7 @@ class RunDiemBFT(process):
             private_keys_clients[c] = private_key
             public_keys_clients[c] = public_key
 
-        setup(play_ground, (config, id_to_validator_map, validator_to_id_map))
+        setup(play_ground, (config, config_id, id_to_validator_map, validator_to_id_map))
         start(play_ground)
 
         for i, v in enumerate(validators):
@@ -125,16 +130,15 @@ class RunDiemBFT(process):
         
         for key, value in message_count.items():
             if value < 2 * self.nfaulty + 1:
-                print("Safety Violated")
+                self.log("Safety Violated")
                 return
-        print(message_count)
-        print("Safety Not Violated")
+        self.log("Safety Not Violated")
 
 
     def liveness_check():
         prev_count = -1
         while(self.isdone == False):
-            print("Liveness bound ***************", self.liveness_bound)
+            self.log("Liveness bound ***************")
             ledger_dir = "../ledgers/config" + str(self.config_id)
             current_count = 0
 
@@ -144,7 +148,7 @@ class RunDiemBFT(process):
                     Lines = file.readlines()
                     current_count += len(Lines)
             if current_count == prev_count:
-                print("Liveness bound violated")
+                self.log("Liveness bound violated")
                 self.isdone = True
                 break
             else:
@@ -158,6 +162,16 @@ def main():
 
     if os.path.exists('../ledgers/') and os.path.isdir('../ledgers/'):
         shutil.rmtree('../ledgers/')
+
+    if os.path.exists('../Executorlogs/') and os.path.isdir('../Executorlogs/'):
+        shutil.rmtree('../Executorlogs')
+    
+    os.mkdir("../Executorlogs")
+
+    if os.path.exists('../Playgroundlogs/') and os.path.isdir('../Playgroundlogs/'):
+        shutil.rmtree('../Playgroundlogs')
+    
+    os.mkdir("../Playgroundlogs")
 
     config_id = 0
 
