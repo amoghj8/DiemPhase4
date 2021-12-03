@@ -1,27 +1,20 @@
-import sys
 PROPOSAL_MESSAGE = "Proposal"
-VOTE_MESSAGE = "vote_message"
-TIMEOUT_MESSAGE = "timeout_message"
+VOTE_MESSAGE = "Vote"
+TIMEOUT_MESSAGE = "Timeout"
 
 class NetworkPlayground(process):
 
-    def setup(config, config_id, id_to_validator_map, validator_to_id_map):
+    def setup(config, id_to_validator_map, validator_to_id_map):
+        print(id_to_validator_map)
+        print(validator_to_id_map)
         self.isdone = False
         self.exclusion_map = self.config["exclusion"]
         pass
 
     def run():
-        self.log("Playground Started")
+        print("Playground Started")
         await(self.isdone == True)
-        self.log("exit playground")
-
-    def log(*args):
-        with open('../Playgroundlogs/config_' + str(self.config_id) + '.log', 'a+') as f:
-            sys.stdout = f # Change the standard output to the file we created.
-            for x in args:
-                print(x, end = '')
-
-            print('')
+        output("exit playground")
 
     def get_partition(round, node):
         result = []
@@ -32,7 +25,37 @@ class NetworkPlayground(process):
                     for n in partition:
                         if n not in result:
                             result.append(n)
-            return result
+        return result
+
+    def filter_exclusion(node_id, current_round, send_list, message_type):
+        if str(current_round) not in self.exclusion_map:
+            return send_list
+        
+        if node_id not in self.exclusion_map[str(current_round)]:
+            return send_list
+
+        result = []
+        for dest in send_list:
+            
+            if '*' in self.exclusion_map[str(current_round)][node_id]:
+                if 'messageType' in self.exclusion_map[str(current_round)][node_id]['*']:
+                    loss_msg_type = self.exclusion_map[str(current_round)][node_id]['*']['messageType']
+                    if message_type == loss_msg_type or loss_msg_type == "*":
+                        continue
+
+            if dest not in self.exclusion_map[str(current_round)][node_id]:
+                result.append(dest)
+                continue
+            if 'messageType' not in self.exclusion_map[str(current_round)][node_id][dest]:
+                result.append(dest)
+                continue
+            loss_msg_type = self.exclusion_map[str(current_round)][node_id][dest]['messageType']
+            if loss_msg_type != message_type or loss_msg_type != '*':
+                result.append(dest)
+
+        return result
+
+
 
     def get_nodes_list(partition):
         lst = []
@@ -50,7 +73,7 @@ class NetworkPlayground(process):
 
     def send_to_validators(msg_type, msg, src_node, dest_list):
         # send((msgType, msg, node), to = validator_to_id_map.keys())
-        self.log("Sending ", msg_type, " from ", src_node, " to", dest_list)
+        print("Sending ", msg_type, " from ", src_node, " to", dest_list)
         send((msg_type, msg, src_node), to = dest_list)
         
     def receive(msg=('Done',), from_=p):
@@ -60,62 +83,20 @@ class NetworkPlayground(process):
         current_round = str(p_msg.block.round)
         node_id = self.validator_to_id_map[node]
         current_partition = get_partition(current_round, node_id)
-        self.log("Proposal Message receive from ", node_id, " : Which is in the partition ", current_partition)
-        nodes_list = get_nodes_list(current_partition)
-        if config['exclusion_flag'] == 1:
-            for replica in current_partition:      
-                if replica == node_id:
-                    continue
-                elif current_round in self.exclusion_map and node_id in self.exclusion_map[current_round]:
-
-                    if self.exclusion_map[current_round][node_id] == "*" :
-                        if "messageType" in self.exclusion_map[current_round][node_id]["*"]:
-                            if self.exclusion_map[current_round][node_id]["*"]["messageType"] == PROPOSAL_MESSAGE:
-                                continue
-                            elif self.exclusion_map[current_round][node_id]["*"]["messageType"] == "*":
-                                continue
-                    
-                    if replica in self.exclusion_map[current_round][node_id]:
-                        if "messageType" in self.exclusion_map[current_round][node_id][replica]:
-                            if self.exclusion_map[current_round][node_id][replica]["messageType"] == PROPOSAL_MESSAGE:
-                                continue
-                            elif self.exclusion_map[current_round][node_id][replica]["messageType"] == "*":
-                                continue
-                    
-                    self.log("sending msg to ", p_msg, " to ", replica,  " from ", node_id, "...", self.id_to_validator_map[node_id], "round", current_round)
-                    send(('Proposal', p_msg, node), to = self.id_to_validator_map[replica])
-        else:
-            send_to_validators('Proposal', p_msg, node, nodes_list)
+        print("Proposal Message receive from ", node_id, " : Which is in the partition ", current_partition)
+        filtered_nodes = filter_exclusion(node_id, current_round, current_partition, PROPOSAL_MESSAGE)
+        nodes_list = get_nodes_list(filtered_nodes)
+        send_to_validators('Proposal', p_msg, node, nodes_list)
         
 
     def receive(msg=('Timeout', t_msg), from_=node):
         current_round =  str(t_msg.tmo_info.round)
         node_id = self.validator_to_id_map[node]
         current_partition = get_partition(current_round, node_id)
-        self.log("Timeout Message receive from ", node_id, " : Which is in the partition ", current_partition, " Round : ", current_round)
-        nodes_list = get_nodes_list(current_partition)
-        if config["exclusion_flag"] == 1:
-            for replica in current_partition:      
-                if replica == node_id:
-                    continue
-                elif current_round in self.exclusion_map and node_id in self.exclusion_map[current_round]:
-                    if self.exclusion_map[current_round][node_id] == "*":
-                        if "messageType" in self.exclusion_map[current_round][node_id]["*"]:
-                            if self.exclusion_map[current_round][node_id]["*"]["messageType"] == TIMEOUT_MESSAGE:
-                                continue
-                            elif self.exclusion_map[current_round][node_id]["*"]["messageType"] == "*":
-                                continue
-                    if replica in self.exclusion_map[current_round][node_id]:
-                        if "messageType" in self.exclusion_map[current_round][node_id][replica]:
-                            if self.exclusion_map[current_round][node_id][replica]["messageType"] == TIMEOUT_MESSAGE:
-                                continue
-                            elif self.exclusion_map[current_round][node_id][replica]["messageType"] == "*":
-                                continue
-                
-                    self.log("sending msg to ", t_msg, " to ", replica,  " from ", node_id, "...", self.id_to_validator_map[node_id], "round", current_round) 
-                    send((TIMEOUT_MESSAGE, t_msg, node), to = self.id_to_validator_map[replica])
-        else:
-            send_to_validators('Timeout', t_msg, node, nodes_list)
+        print("Timeout Message receive from ", node_id, " : Which is in the partition ", current_partition, " Round : ", current_round)
+        filtered_nodes = filter_exclusion(node_id, current_round, current_partition, TIMEOUT_MESSAGE)
+        nodes_list = get_nodes_list(filtered_nodes)
+        send_to_validators('Timeout', t_msg, node, nodes_list)
 
 
     def receive(msg=('Vote', v_msg), from_=node):
@@ -123,34 +104,14 @@ class NetworkPlayground(process):
         node_id = self.validator_to_id_map[node]
         current_partition = get_partition(current_round, node_id)
         next_leader_list = fetch_next_leader(current_round)
-        for nxt_l in next_leader_list:
-            if nxt_l in current_partition:
-                nxt_l_validator = self.id_to_validator_map[nxt_l]
-                if config["exclusion_flag"] == 1:
-                    if nxt_l == node_id:
-                        continue
-                    elif current_round in self.exclusion_map and node_id in self.exclusion_map[current_round]:
-                        if self.exclusion_map[current_round][node_id] == "*":
-                            if "messageType" in self.exclusion_map[current_round][node_id]["*"]:
-                                if self.exclusion_map[current_round][node_id]["*"]["messageType"] == VOTE_MESSAGE:
-                                    continue
-                                elif self.exclusion_map[current_round][node_id]["*"]["messageType"] == "*":
-                                    continue
-                        elif nxt_l in self.exclusion_map[current_round][node_id]:
-                            if "messageType" in self.exclusion_map[current_round][node_id][nxt_l]:
-                                if self.exclusion_map[current_round][node_id][nxt_l]["messageType"] == VOTE_MESSAGE:
-                                    continue
-                                elif self.exclusion_map[current_round][node_id][nxt_l]["messageType"] == "*":
-                                    continue
+        filtered_nodes = filter_exclusion(node_id, current_round, next_leader_list, VOTE_MESSAGE)
+        nodes_list = get_nodes_list(filtered_nodes)
+        send_to_validators('Vote', v_msg, node, nodes_list)
 
-                    self.log("sending msg to ", v_msg, " to ", nxt_l,  " from ", node_id, "...", self.id_to_validator_map[node_id], "round", current_round)
-                    send((VOTE_MESSAGE, v_msg, node), to = self.id_to_validator_map[nxt_l])
-                else:
-                    send_to_validators('Vote', v_msg, node, [nxt_l_validator])
 
     def receive(msg=('Sync_Request', currentRound), from_=node):
         node_id = self.validator_to_id_map[node]
-        self.log("Got Sync_Request Message from ", node_id, " for the round ", currentRound)
+        print("Got Sync_Request Message from ", node_id, " for the round ", currentRound)
         current_partition = get_partition(currentRound, node_id)
         nodes_list = get_nodes_list(current_partition)
         send_to_validators('Sync_Request', currentRound, node, nodes_list)
@@ -158,7 +119,7 @@ class NetworkPlayground(process):
 
     def receive(msg=('Sync_Reply', message, currentRound), from_=node):
         node_id = self.validator_to_id_map[node]
-        self.log("Got Sync_Reply Message from ", node_id, " for the round ", currentRound)
+        print("Got Sync_Reply Message from ", node_id, " for the round ", currentRound)
         current_partition = get_partition(currentRound, node_id)
         nodes_list = get_nodes_list(current_partition)
         send_to_validators('Sync_Reply', message, node, nodes_list)

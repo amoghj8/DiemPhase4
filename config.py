@@ -8,7 +8,7 @@ configs = [
         'limit_step_3' : 5,
         'partition_size' : 2,
         'nbr_of_rounds' : 10,
-        'test_type' : 'RANDOM',
+        'test_type' : 'DETERMINISTIC',
         'nclients': 5,
         'nclientops': 5,
         'sleeptime': 1,
@@ -20,27 +20,27 @@ configs = [
         'conflicting_votes_bug': 0,
         'exclusion_flag': 0,
         'exclusion_list': {
-            "1": {
-                "A" : {
-                    "B" : {
-                        "messageType" : "proposal_message"
-                    }
-                },
-                "B" : {
-                    "C" : {
-                        "messageType" : "*"
-                    }
-                }
-            },
-            "2": {
+            "4": {
                 "C" : {
                     "D" : {
-                        "messageType" : "proposal_message"
+                        "messageType" : "Proposal"
                     }
                 },
                 "B" : {
                     "E" : {
                         "messageType" : "*"
+                    }
+                }
+            },
+            "5" : {
+                "B" : {
+                    "A" : {
+                        "messageType" : "Proposal"
+                    }
+                },
+                "B" : {
+                    "E" : {
+                        "messageType" : "Vote"
                     }
                 }
             }
