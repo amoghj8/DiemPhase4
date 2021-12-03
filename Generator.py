@@ -89,7 +89,7 @@ class TestGenerator():
         partition_index = 0
         leader_index = -1
         os.mkdir('scenario/'+ str(config_id) + '/')
-        for scenario_nbr in range(1, nbr_of_scenario+1):
+        for scenario_nbr in range(0, nbr_of_scenario):
             test_dict = {}
             test_dict['round_partitions'] = {}
             for round in range(1, nbr_of_rounds+1):
