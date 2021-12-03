@@ -1,26 +1,27 @@
+import sys
 PROPOSAL_MESSAGE = "Proposal"
 VOTE_MESSAGE = "Vote"
 TIMEOUT_MESSAGE = "Timeout"
 
 class NetworkPlayground(process):
 
-    def setup(config, id_to_validator_map, validator_to_id_map):
-        print(id_to_validator_map)
-        print(validator_to_id_map)
+    def setup(config, config_id, id_to_validator_map, validator_to_id_map):
         self.isdone = False
         self.exclusion_map = self.config["exclusion"]
         pass
 
     def run():
-        print("Playground Started")
+        self.log("Playground Started")
+        self.log("Node Id to Validator Process Id Mapping", id_to_validator_map)
+        self.log("Validator Process Id to Node Id Mapping", validator_to_id_map)
         await(self.isdone == True)
-        output("exit playground")
+        self.log("Exiting playground")
 
     def log(*args):
         with open('../Playgroundlogs/config_' + str(self.config_id) + '.log', 'a+') as f:
             sys.stdout = f # Change the standard output to the file we created.
             for x in args:
-                print(x, end = '')
+                print(x, end = ' ')
 
             print('')
 
@@ -44,7 +45,6 @@ class NetworkPlayground(process):
 
         result = []
         for dest in send_list:
-            
             if '*' in self.exclusion_map[str(current_round)][node_id]:
                 if 'messageType' in self.exclusion_map[str(current_round)][node_id]['*']:
                     loss_msg_type = self.exclusion_map[str(current_round)][node_id]['*']['messageType']
@@ -58,7 +58,7 @@ class NetworkPlayground(process):
                 result.append(dest)
                 continue
             loss_msg_type = self.exclusion_map[str(current_round)][node_id][dest]['messageType']
-            if loss_msg_type != message_type or loss_msg_type != '*':
+            if loss_msg_type != message_type and loss_msg_type != '*':
                 result.append(dest)
 
         return result
@@ -80,8 +80,6 @@ class NetworkPlayground(process):
             return []
 
     def send_to_validators(msg_type, msg, src_node, dest_list):
-        # send((msgType, msg, node), to = validator_to_id_map.keys())
-        print("Sending ", msg_type, " from ", src_node, " to", dest_list)
         send((msg_type, msg, src_node), to = dest_list)
         
     def receive(msg=('Done',), from_=p):
@@ -91,9 +89,12 @@ class NetworkPlayground(process):
         current_round = str(p_msg.block.round)
         node_id = self.validator_to_id_map[node]
         current_partition = get_partition(current_round, node_id)
-        print("Proposal Message receive from ", node_id, " : Which is in the partition ", current_partition)
         filtered_nodes = filter_exclusion(node_id, current_round, current_partition, PROPOSAL_MESSAGE)
+        drop_list = set(current_partition) - set(filtered_nodes)
+        if(len(drop_list) > 0):
+            self.log("Droppped Proposal message from ", node_id, " to ", drop_list, " In the round ", current_round)
         nodes_list = get_nodes_list(filtered_nodes)
+        self.log("Sending Proposal Message to ", filtered_nodes, " from ", node_id, " in round ", current_round)
         send_to_validators('Proposal', p_msg, node, nodes_list)
         
 
@@ -101,9 +102,12 @@ class NetworkPlayground(process):
         current_round =  str(t_msg.tmo_info.round)
         node_id = self.validator_to_id_map[node]
         current_partition = get_partition(current_round, node_id)
-        print("Timeout Message receive from ", node_id, " : Which is in the partition ", current_partition, " Round : ", current_round)
         filtered_nodes = filter_exclusion(node_id, current_round, current_partition, TIMEOUT_MESSAGE)
         nodes_list = get_nodes_list(filtered_nodes)
+        drop_list = set(current_partition) - set(filtered_nodes)
+        if(len(drop_list) > 0):
+            self.log("Droppped Timeout message from ", node_id, " to ", drop_list, " In the round ", current_round)
+        self.log("Sending Timeout Message to ", filtered_nodes, " from ", node_id, " in round ", current_round)
         send_to_validators('Timeout', t_msg, node, nodes_list)
 
 
@@ -114,12 +118,15 @@ class NetworkPlayground(process):
         next_leader_list = fetch_next_leader(current_round)
         filtered_nodes = filter_exclusion(node_id, current_round, next_leader_list, VOTE_MESSAGE)
         nodes_list = get_nodes_list(filtered_nodes)
+        drop_list = set(next_leader_list) - set(filtered_nodes)
+        if(len(drop_list) > 0):
+            self.log("Droppped Vote message from ", node_id, " to ", drop_list, " In the round ", current_round)
+        self.log("Sending Vote Message to ", filtered_nodes, " from ", node_id, " in round ", current_round)
         send_to_validators('Vote', v_msg, node, nodes_list)
 
 
     def receive(msg=('Sync_Request', currentRound), from_=node):
         node_id = self.validator_to_id_map[node]
-        print("Got Sync_Request Message from ", node_id, " for the round ", currentRound)
         current_partition = get_partition(currentRound, node_id)
         nodes_list = get_nodes_list(current_partition)
         send_to_validators('Sync_Request', currentRound, node, nodes_list)
@@ -127,7 +134,7 @@ class NetworkPlayground(process):
 
     def receive(msg=('Sync_Reply', message, currentRound), from_=node):
         node_id = self.validator_to_id_map[node]
-        print("Got Sync_Reply Message from ", node_id, " for the round ", currentRound)
+        # print("Got Sync_Reply Message from ", node_id, " for the round ", currentRound)
         current_partition = get_partition(currentRound, node_id)
         nodes_list = get_nodes_list(current_partition)
         send_to_validators('Sync_Reply', message, node, nodes_list)

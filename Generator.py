@@ -96,7 +96,8 @@ class TestGenerator():
                 round_dict = {}
                 if test_type == 'DETERMINISTIC':
                     if leader_index == len(leader_list) - 1:  # go to next partition if all possible leader-partition pair is created for current partition
-                        partition_index = partition_index + 1
+                        partition_index = (partition_index + 1) % len(partition_list)
+                        
                     leader_index = ( leader_index + 1 ) % len(leader_list)
                 else :
                     leader_index = random.randint(0, len(leader_list)-1)

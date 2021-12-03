@@ -26,12 +26,17 @@ class RunDiemBFT(process):
         self.isdone = False
         self.liveness_bound = 10
 
-    def log(msg):
+    def log(*args):
         with open('../Executorlogs/config_' + str(self.config_id) + '.log', 'a+') as f:
             sys.stdout = f # Change the standard output to the file we created.
-            print(msg)
+            for x in args:
+                print(x, end = ' ')
+
+            print('')
 
     def run():
+
+        start_time = time.time()
         
         private_keys_validators = {}
         public_keys_validators = {}
@@ -50,10 +55,13 @@ class RunDiemBFT(process):
 
         play_ground = new(NetworkPlayground, num = 1)
         
-
         validators = list(new(ValidatorTwin, num=nvalidators))
         twins = list(new(ValidatorTwin, num=ntwins))
         clients = list(new(Client, num=nclients))
+
+        self.log("Starting Executor")
+        self.log("Spawning ", self.nvalidators, " Validators")
+        self.log("Added Twinn for  ", self.nfaulty, " Validators")        
 
         for _ in range(nvalidators):
             private_key, public_key = Cryptography.generate_key()
@@ -92,15 +100,15 @@ class RunDiemBFT(process):
                         private_keys_clients[c], public_keys_validators))
 
         start(validators)
-        # start(twins)
         start(clients)
-
         liveness_check()
-    
         await(self.isdone == True)
         output("All rounds done, informing all validators.", config_id)
-
+        self.log("All rounds done, informing all validators.", config_id)
         exit_executor(validators, clients, play_ground)
+        end_time = time.time()
+        self.log("Ending Executor", "Time elaped : ", end_time - start_time)
+        
 
     def exit_executor(validators, clients, play_ground):
         send(('Done',), to=validators)
@@ -108,6 +116,7 @@ class RunDiemBFT(process):
         send(('Done',), to=clients)
         time.sleep(2)
         output("Exiting Scenario Executor", os.getpid())
+        self.log("Exiting Scenario Executor", os.getpid())
         safety_check()
 
     def receive(msg=('Done',), from_=p):
@@ -132,13 +141,15 @@ class RunDiemBFT(process):
             if value < 2 * self.nfaulty + 1:
                 self.log("Safety Violated")
                 return
+        output(message_count)
+        self.log(message_count)
         self.log("Safety Not Violated")
 
 
     def liveness_check():
         prev_count = -1
         while(self.isdone == False):
-            self.log("Liveness bound ***************")
+            self.log("Checking Liveness")
             ledger_dir = "../ledgers/config" + str(self.config_id)
             current_count = 0
 
