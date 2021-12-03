@@ -16,6 +16,14 @@ class NetworkPlayground(process):
         await(self.isdone == True)
         output("exit playground")
 
+    def log(*args):
+        with open('../Playgroundlogs/config_' + str(self.config_id) + '.log', 'a+') as f:
+            sys.stdout = f # Change the standard output to the file we created.
+            for x in args:
+                print(x, end = '')
+
+            print('')
+
     def get_partition(round, node):
         result = []
         if str(self.round) in self.config['round_partitions']:
